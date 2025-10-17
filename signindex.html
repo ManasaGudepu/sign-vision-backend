@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Vision - Video Communication</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background: #eef; }
+    video { width: 40%; margin: 10px; border-radius: 10px; box-shadow: 0 0 10px #888; }
+    #roomInput { padding: 6px; }
+    button { padding: 6px 12px; margin-left: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>🎥 Sign Vision Video Call</h1>
+  <p>Enter a room name for both users to join:</p>
+  <input id="roomInput" placeholder="Enter room name" />
+  <button id="joinBtn">Join Room</button>
+
+  <div>
+    <h3>Your Video</h3>
+    <video id="localVideo" autoplay playsinline muted></video>
+    <h3>Remote Video</h3>
+    <video id="remoteVideo" autoplay playsinline></video>
+  </div>
+
+  <script>
+    const localVideo = document.getElementById("localVideo");
+    const remoteVideo = document.getElementById("remoteVideo");
+    const joinBtn = document.getElementById("joinBtn");
+    const roomInput = document.getElementById("roomInput");
+
+    let pc;
+    let ws;
+    let roomName;
+
+    // WebRTC configuration (public Google STUN server)
+    const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+    async function startCall() {
+      roomName = roomInput.value.trim();
+      if (!roomName) return alert("Please enter a room name");
+
+      ws = new WebSocket("ws://localhost:8080");
+      pc = new RTCPeerConnection(config);
+
+      pc.onicecandidate = (e) => {
+        if (e.candidate) {
+          ws.send(JSON.stringify({ type: "ice", candidate: e.candidate }));
+        }
+      };
+
+      pc.ontrack = (e) => {
+        remoteVideo.srcObject = e.streams[0];
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideo.srcObject = stream;
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: "join", room: roomName }));
+      };
+
+      ws.onmessage = async (msg) => {
+        const data = JSON.parse(msg.data);
+        if (data.type === "offer") {
+          await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          ws.send(JSON.stringify({ type: "answer", answer }));
+        } else if (data.type === "answer") {
+          await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+        } else if (data.type === "ice") {
+          try { await pc.addIceCandidate(data.candidate); } catch (e) { console.error(e); }
+        }
+      };
+
+      // Create and send offer
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: "join", room: roomName }));
+        ws.send(JSON.stringify({ type: "offer", offer }));
+      };
+    }
+
+    joinBtn.onclick = startCall;
+  </script>
+</body>
+</html>
