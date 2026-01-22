@@ -1,53 +1,72 @@
-const express = require("express");
-const { WebSocketServer } = require("ws");
+// backend/server.js
+const WebSocket = require("ws");
 
-const app = express();
-const PORT = 8080;
+const PORT = process.env.PORT || 5001;
+const wss = new WebSocket.Server({ port: PORT });
 
-// Start HTTP server
-app.get("/", (req, res) => {
-  res.send("✅ Sign Vision backend is running!");
-});
+// Room structure: Map<roomName, Set<ws>>
+const rooms = new Map();
 
-const server = app.listen(PORT, () => {
-  console.log(`Sign Vision backend running on http://localhost:${PORT}`);
-});
+wss.on("connection", (ws, req) => {
+  const url = new URL(req.url, "http://localhost");
+  const roomName = url.searchParams.get("room");
 
-// WebSocket server for signaling
-const wss = new WebSocketServer({ server });
+  ws.roomName = roomName;
 
-const rooms = {}; // roomId -> array of ws clients
+  if (!roomName) {
+    ws.close();
+    return;
+  }
 
-wss.on("connection", (ws) => {
-  console.log("New WebSocket connection");
+  // Create room if not exists
+  if (!rooms.has(roomName)) {
+    rooms.set(roomName, new Set());
+  }
 
-  ws.on("message", (message) => {
+  const room = rooms.get(roomName);
+  room.add(ws);
+
+  console.log(
+    `✅ Client connected | Room: ${roomName} | Users: ${room.size}`
+  );
+
+  // Assign role
+  if (room.size === 1) {
+    ws.send(JSON.stringify({ type: "role", role: "caller" }));
+  } else {
+    ws.send(JSON.stringify({ type: "role", role: "callee" }));
+  }
+
+  ws.on("message", (msg) => {
+    let data;
     try {
-      const data = JSON.parse(message);
-
-      if (data.type === "join") {
-        const roomId = data.room;
-        ws.roomId = roomId;
-        if (!rooms[roomId]) rooms[roomId] = [];
-        rooms[roomId].push(ws);
-        console.log(`User joined room: ${roomId}`);
-      } else if (["offer", "answer", "ice"].includes(data.type)) {
-        const room = rooms[ws.roomId] || [];
-        room.forEach((client) => {
-          if (client !== ws && client.readyState === client.OPEN) {
-            client.send(JSON.stringify(data));
-          }
-        });
-      }
+      data = JSON.parse(msg);
     } catch (err) {
-      console.error("Error parsing message", err);
+      console.error("❌ Invalid JSON:", msg.toString());
+      return;
     }
+
+    // Relay to other clients in same room
+    room.forEach((client) => {
+      if (client !== ws && client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(data));
+      }
+    });
   });
 
   ws.on("close", () => {
-    if (ws.roomId && rooms[ws.roomId]) {
-      rooms[ws.roomId] = rooms[ws.roomId].filter((c) => c !== ws);
-      console.log(`User disconnected from room: ${ws.roomId}`);
+    console.log(`❌ Client disconnected | Room: ${roomName}`);
+    room.delete(ws);
+
+    if (room.size === 0) {
+      rooms.delete(roomName);
+      console.log(`🗑 Room deleted: ${roomName}`);
     }
   });
+
+  ws.on("error", (err) => {
+    console.error("WebSocket error:", err);
+  });
 });
+
+console.log("🚀 WebSocket signaling server running on port:", PORT);
