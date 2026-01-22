@@ -2,90 +2,695 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sign Vision - Video Communication</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Vision - Inclusive Video Communication</title>
+
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; background: #eef; }
-    video { width: 40%; margin: 10px; border-radius: 10px; box-shadow: 0 0 10px #888; }
-    #roomInput { padding: 6px; }
-    button { padding: 6px 12px; margin-left: 6px; cursor: pointer; }
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-top: 30px;
+      text-shadow: 0 3px 10px rgba(0,0,0,0.3);
+      letter-spacing: 1px;
+    }
+
+    p {
+      font-size: 1rem;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .input-area {
+      margin: 20px 0;
+      background: rgba(255,255,255,0.15);
+      padding: 20px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 25px rgba(0,0,0,0.2);
+    }
+
+    input, button {
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: none;
+      font-size: 1rem;
+      margin: 5px;
+    }
+
+    input {
+      width: 220px;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+    }
+
+    input::placeholder {
+      color: #ddd;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: bold;
+      background: linear-gradient(90deg, #00c6ff, #0072ff);
+      color: white;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      background: linear-gradient(90deg, #0072ff, #00c6ff);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(90deg, #ff416c, #ff4b2b);
+    }
+
+    #status {
+      font-weight: 600;
+      margin: 15px;
+      background: rgba(0,0,0,0.2);
+      padding: 10px 20px;
+      border-radius: 10px;
+    }
+
+    .video-section {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 30px;
+      margin: 30px 0;
+    }
+
+    .video-card {
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 25px rgba(0,0,0,0.3);
+      padding: 20px;
+      width: 320px;
+      transition: all 0.3s ease;
+    }
+
+    .video-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .video-card h3 {
+      margin-bottom: 10px;
+    }
+
+    video {
+      width: 100%;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4);
+    }
+
+    #transcriptBlock {
+      margin-top: 30px;
+      padding: 20px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 15px;
+      width: 80%;
+      max-width: 800px;
+      font-size: 1.1rem;
+      white-space: pre-line;
+      min-height: 60px;
+      line-height: 1.5;
+    }
+
+    /* 🔹 SIGN ANIMATION BLOCK */
+   
+    #signAnimationBlock {
+  margin-top: 30px;
+  width: 90%;
+  max-width: 900px;
+  height: 400px;  /* fixed block size */
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.15),
+    rgba(255, 255, 255, 0.05)
+  );
+  border-radius: 25px;
+  position: relative;          /* so we can overlay text */
+  overflow: hidden;            /* keep canvas inside rounded corners */
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(15px);
+}
+
+    
+    #handCanvas {
+  width: 100%;
+  height: 100%;                /* ✅ canvas fills the whole block */
+  display: block;
+  border-radius: 25px;         /* match container rounding */
+  background: rgba(0, 0, 0, 0.1);
+}
+    
+  #handStatusRow {
+  margin-top: 8px;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  font-size: 0.95rem;
+}
+
+.hand-status span {
+  font-weight: 600;
+}
+
+
+    #signTitle {
+  position: absolute;          /* overlay on top of canvas */
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 6px 14px;
+  font-size: 1rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+
+    .controls {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    @media (max-width: 768px) {
+      .video-section {
+        flex-direction: column;
+      }
+      .video-card {
+        width: 90%;
+      }
+      #signAnimationBlock {
+        height: 320px;
+      }
+      #handCanvas {
+        max-height: 200px;
+      }
+    }
+    #gestureTimeline {
+  margin-top: 25px;
+  width: 90%;
+  max-width: 900px;
+  padding: 15px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 15px;
+  text-align: left;
+}
+
+#timelineContent {
+  margin-top: 10px;
+  padding: 10px;
+  min-height: 50px;
+  background: rgba(0,0,0,0.25);
+  border-radius: 10px;
+  font-size: 1rem;
+  white-space: pre-line;
+}
+
   </style>
 </head>
 <body>
-  <h1>🎥 Sign Vision Video Call</h1>
-  <p>Enter a room name for both users to join:</p>
-  <input id="roomInput" placeholder="Enter room name" />
-  <button id="joinBtn">Join Room</button>
+  <div class="container">
+    <h1>🤟 Sign Vision</h1>
 
-  <div>
-    <h3>Your Video</h3>
-    <video id="localVideo" autoplay playsinline muted></video>
-    <h3>Remote Video</h3>
-    <video id="remoteVideo" autoplay playsinline></video>
+    <div class="input-area">
+      <input id="roomInput" placeholder="Enter room name" />
+      <button id="joinBtn">Join Room</button>
+      <button id="leaveBtn" class="btn-secondary" disabled>Leave Room</button>
+    </div>
+
+    <div id="status">🟡 Waiting to join a room...</div>
+
+    <div class="video-section">
+      <div class="video-card">
+        <h3>Your Video</h3>
+        <video id="localVideo" autoplay playsinline muted></video>
+      </div>
+      <div class="video-card">
+        <h3>Remote Video</h3>
+        <video id="remoteVideo" autoplay playsinline></video>
+      </div>
+    </div>
+
+    <div id="transcriptBlock">📝 Speech transcript will appear here...</div>
+
+    <!-- ✅ CLEAN SIGN ANIMATION BLOCK -->
+
+    <div id="signAnimationBlock">
+  <canvas id="handCanvas"></canvas>
+  <h2 id="signTitle">👋 Sign Animation Appears Here</h2>
+
+  <div id="gestureTimeline">
+  <h3>Gesture Timeline</h3>
+  <div id="timelineContent">No gestures yet...</div>
+</div>
+
+  <!-- 🆕 Per-hand gesture status -->
+  <div id="handStatusRow">
+    <div class="hand-status">
+      🖐 Left hand: <span id="leftGesture">None</span>
+    </div>
+    <div class="hand-status">
+      🖐 Right hand: <span id="rightGesture">None</span>
+    </div>
   </div>
+</div>
+
+    <div class="controls">
+      <button id="muteBtn">🎤 Mute</button>
+      <button id="cameraBtn">📷 Hide Camera</button>
+    </div>
+  </div>
+
+  <!-- MediaPipe libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
   <script>
     const localVideo = document.getElementById("localVideo");
     const remoteVideo = document.getElementById("remoteVideo");
     const joinBtn = document.getElementById("joinBtn");
+    const leaveBtn = document.getElementById("leaveBtn");
+    const muteBtn = document.getElementById("muteBtn");
+    const cameraBtn = document.getElementById("cameraBtn");
     const roomInput = document.getElementById("roomInput");
+    const status = document.getElementById("status");
+    const transcriptBlock = document.getElementById("transcriptBlock");
+    const signTitle = document.getElementById("signTitle");
 
-    let pc;
-    let ws;
-    let roomName;
+    const handCanvas = document.getElementById("handCanvas");
+    const handCtx = handCanvas ? handCanvas.getContext("2d") : null;
+    const leftGestureEl = document.getElementById("leftGesture");
+    const rightGestureEl = document.getElementById("rightGesture");
 
-    // WebRTC configuration (public Google STUN server)
+    let pc, ws, roomName, localStream;
+    let isMuted = false;
+    let isCameraOff = false;
+    let recognition;
+    let hands;
+    let handTrackingActive = false;
+    let gestureTimeline = [];
+
+
     const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
-    async function startCall() {
-      roomName = roomInput.value.trim();
-      if (!roomName) return alert("Please enter a room name");
+    function sendSignal(data) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(data));
+      } else {
+        console.warn("WebSocket not open, dropping message:", data);
+      }
+    }
 
-      ws = new WebSocket("ws://localhost:8080");
+    // ============ MediaPipe Hand Tracking ============
+    function initHandTracking() {
+      if (!handCanvas || !handCtx) {
+        console.warn("Hand canvas not found.");
+        return;
+      }
+      if (typeof Hands === "undefined") {
+        console.warn("MediaPipe Hands is not loaded.");
+        return;
+      }
+
+      hands = new Hands({
+        locateFile: (file) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }
+      });
+
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.7,
+      });
+
+      hands.onResults(onHandResults);
+
+      handTrackingActive = true;
+      processVideoFrame();
+    }
+
+    async function processVideoFrame() {
+      if (!handTrackingActive || !localVideo) return;
+      if (localVideo.readyState >= 2) {
+        try {
+          await hands.send({ image: localVideo });
+        } catch (e) {
+          console.warn("Error sending frame to MediaPipe Hands:", e);
+        }
+      }
+      requestAnimationFrame(processVideoFrame);
+    }
+
+     function onHandResults(results) {
+  if (!handCtx || !handCanvas) return;
+
+  if (results.image) {
+    handCanvas.width = results.image.width;
+    handCanvas.height = results.image.height;
+  }
+
+  handCtx.save();
+  handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
+
+  // reset labels if no hands
+  if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+    if (leftGestureEl) leftGestureEl.textContent = "None";
+    if (rightGestureEl) rightGestureEl.textContent = "None";
+    handCtx.restore();
+    return;
+  }
+
+  const colors = {
+    Left: "#00ff88",
+    Right: "#ff4b4b",
+  };
+
+  for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+    const landmarks = results.multiHandLandmarks[i];
+    const handedness = results.multiHandedness?.[i]?.label || "Unknown"; // "Left" or "Right"
+
+    // choose color based on hand type
+    const color = colors[handedness] || "#ffffff";
+
+   // WHITE lines (skeleton)
+drawConnectors(
+  handCtx,
+  landmarks,
+  HAND_CONNECTIONS,
+  {
+    color: "#ffffff",
+    lineWidth: 2
+  }
+);
+
+// BLACK dots (joints)
+drawLandmarks(
+  handCtx,
+  landmarks,
+  {
+    color: "#000000",
+    radius: 4
+  }
+);
+
+
+    // classify gesture for this hand
+    const gesture = classifyGesture(landmarks);
+    updateGestureUI(handedness, gesture);
+    logGesture(handedness, gesture);
+  }
+
+  handCtx.restore();
+}
+
+
+    function distance(a, b) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// crude per-hand classifier
+function classifyGesture(landmarks) {
+  const wrist = landmarks[0];
+  const thumbTip = landmarks[4];
+  const indexTip = landmarks[8];
+  const middleTip = landmarks[12];
+  const ringTip = landmarks[16];
+  const pinkyTip = landmarks[20];
+
+  const avgFingerDist =
+    (distance(indexTip, wrist) +
+      distance(middleTip, wrist) +
+      distance(ringTip, wrist) +
+      distance(pinkyTip, wrist)) /
+    4;
+
+  const thumbDist = distance(thumbTip, wrist);
+
+  // thresholds tuned by eyeball; you can tweak later
+  if (avgFingerDist < 0.10 && thumbDist < 0.10) {
+    return "FIST";
+  }
+
+  if (avgFingerDist > 0.23 && thumbDist > 0.18) {
+    return "OPEN";
+  }
+
+  if (thumbDist > 0.20 && indexTip.y > wrist.y && middleTip.y > wrist.y) {
+    return "THUMBS_UP";
+  }
+
+  return "UNKNOWN";
+}
+
+function logGesture(handType, gesture) {
+  const entry = `${handType}: ${gesture}`;
+  gestureTimeline.push(entry);
+
+  if (gestureTimeline.length > 15) {
+    gestureTimeline.shift(); // keep recent gestures only
+  }
+
+  document.getElementById("timelineContent").textContent =
+    gestureTimeline.join("\n");
+}
+
+
+function updateGestureUI(handType, gesture) {
+  // handType = "Left" or "Right" (from MediaPipe)
+  const label =
+    gesture === "FIST"
+      ? "✊ Fist"
+      : gesture === "OPEN"
+      ? "🖐 Open"
+      : gesture === "THUMBS_UP"
+      ? "👍 Thumbs up"
+      : "None";
+
+  if (handType === "Left" && leftGestureEl) {
+    leftGestureEl.textContent = label;
+  } else if (handType === "Right" && rightGestureEl) {
+    rightGestureEl.textContent = label;
+  }
+}
+
+    // ================================================
+
+    function startSpeechRecognition() {
+      if (!("webkitSpeechRecognition" in window)) {
+        transcriptBlock.textContent = "❌ Speech Recognition not supported in this browser.";
+        return;
+      }
+
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onresult = (event) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        transcriptBlock.textContent = transcript;
+        triggerSignAnimation(transcript);
+      };
+
+      recognition.start();
+    }
+
+    function triggerSignAnimation(text) {
+      if (text.trim().length === 0) return;
+      if (signTitle) {
+        signTitle.textContent = `🤟 Translating: "${text}"`;
+        setTimeout(() => {
+          signTitle.textContent = "👋 Sign Animation Appears Here";
+        }, 5000);
+      }
+    }
+
+    joinBtn.onclick = async () => {
+      roomName = roomInput.value.trim();
+      if (!roomName) {
+        alert("Please enter a room name");
+        return;
+      }
+      if (pc || ws) {
+        console.warn("Already in a room. Leave before joining again.");
+        return;
+      }
+
+      joinBtn.disabled = true;
+      leaveBtn.disabled = false;
+
+      status.textContent = "🎥 Accessing camera and microphone...";
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+        localVideo.srcObject = localStream;
+      } catch (err) {
+        console.error("Error accessing camera/mic:", err);
+        alert("Could not access camera/mic. Check permissions.");
+        status.textContent = "❌ Failed to access camera/mic.";
+        joinBtn.disabled = false;
+        leaveBtn.disabled = true;
+        return;
+      }
+
+      if (!handTrackingActive) {
+        initHandTracking();
+      }
+
       pc = new RTCPeerConnection(config);
 
-      pc.onicecandidate = (e) => {
-        if (e.candidate) {
-          ws.send(JSON.stringify({ type: "ice", candidate: e.candidate }));
-        }
-      };
+      localStream.getTracks().forEach((track) => {
+        pc.addTrack(track, localStream);
+      });
 
       pc.ontrack = (e) => {
         remoteVideo.srcObject = e.streams[0];
       };
 
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      localVideo.srcObject = stream;
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ type: "join", room: roomName }));
+      pc.onicecandidate = (e) => {
+        if (e.candidate) {
+          sendSignal({ type: "ice", candidate: e.candidate });
+        }
       };
 
-      ws.onmessage = async (msg) => {
-        const data = JSON.parse(msg.data);
+      status.textContent = "🌐 Connecting to signaling server...";
+      ws = new WebSocket(`ws://localhost:5001?room=${roomName}`);
+
+      ws.onopen = async () => {
+        console.log("WebSocket opened");
+        sendSignal({ type: "join", room: roomName });
+        status.textContent = "🟢 Connected to room: " + roomName;
+
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          sendSignal({ type: "offer", offer });
+        } catch (e) {
+          console.error("Error creating/sending offer:", e);
+        }
+
+        startSpeechRecognition();
+      };
+
+      ws.onmessage = async (message) => {
+        const data = JSON.parse(message.data);
+
         if (data.type === "offer") {
           await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
-          ws.send(JSON.stringify({ type: "answer", answer }));
+          sendSignal({ type: "answer", answer });
         } else if (data.type === "answer") {
           await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-        } else if (data.type === "ice") {
-          try { await pc.addIceCandidate(data.candidate); } catch (e) { console.error(e); }
+        } else if (data.type === "ice" && data.candidate) {
+          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
         }
       };
 
-      // Create and send offer
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ type: "join", room: roomName }));
-        ws.send(JSON.stringify({ type: "offer", offer }));
+      ws.onclose = () => {
+        console.log("WebSocket closed");
       };
-    }
 
-    joinBtn.onclick = startCall;
+      ws.onerror = (err) => {
+        console.error("WebSocket error:", err);
+        status.textContent = "⚠️ WebSocket error. Check backend.";
+      };
+    };
+
+    leaveBtn.onclick = () => {
+      if (recognition) {
+        try {
+          recognition.stop();
+        } catch (e) {
+          console.warn("Error stopping recognition:", e);
+        }
+        recognition = null;
+      }
+
+      if (ws) {
+        try {
+          ws.close();
+        } catch (e) {
+          console.warn("Error closing WebSocket:", e);
+        }
+        ws = null;
+      }
+
+      if (pc) {
+        try {
+          pc.ontrack = null;
+          pc.onicecandidate = null;
+          pc.close();
+        } catch (e) {
+          console.warn("Error closing peer connection:", e);
+        }
+        pc = null;
+      }
+
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+        localStream = null;
+      }
+
+      localVideo.srcObject = null;
+      remoteVideo.srcObject = null;
+
+      handTrackingActive = false;
+
+      status.textContent = "🔴 Left the room.";
+      joinBtn.disabled = false;
+      leaveBtn.disabled = true;
+      muteBtn.textContent = "🎤 Mute";
+      cameraBtn.textContent = "📷 Hide Camera";
+      isMuted = false;
+      isCameraOff = false;
+    };
+
+    muteBtn.onclick = () => {
+      if (!localStream) return;
+      isMuted = !isMuted;
+      localStream.getAudioTracks().forEach((track) => (track.enabled = !isMuted));
+      muteBtn.textContent = isMuted ? "🔇 Unmute" : "🎤 Mute";
+    };
+
+    cameraBtn.onclick = () => {
+      if (!localStream) return;
+      isCameraOff = !isCameraOff;
+      localStream.getVideoTracks().forEach((track) => (track.enabled = !isCameraOff));
+      cameraBtn.textContent = isCameraOff ? "📷 Show Camera" : "📷 Hide Camera";
+    };
   </script>
 </body>
 </html>
